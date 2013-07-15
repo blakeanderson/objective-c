@@ -11,8 +11,6 @@
 //
 //
 
-#import "JSONKit.h"
-
 
 #pragma mark Private interface methods
 
@@ -65,20 +63,11 @@
     // Checking whether native JSONSerializer is available or not
     NSError *parsingError = nil;
     id result = nil;
-    if (NSClassFromString(@"NSJSONSerialization")) {
-        
-        result = [NSJSONSerialization JSONObjectWithData:[jsonString dataUsingEncoding:NSUTF8StringEncoding]
-                                                 options:NSJSONReadingAllowFragments
-                                                   error:&parsingError];
-    }
-    // Fallback to JSONKit usage
-    else {
-        
-        result = [[jsonString dataUsingEncoding:NSUTF8StringEncoding] objectFromJSONDataWithParseOptions:JKParseOptionNone
-                                                                                                   error:&parsingError];
-    }
-    
-    
+
+	result = [NSJSONSerialization JSONObjectWithData:[jsonString dataUsingEncoding:NSUTF8StringEncoding]
+											 options:NSJSONReadingAllowFragments
+											   error:&parsingError];
+
     // Checking whether parsing was successful or not
     if (result && parsingError == nil) {
         
@@ -101,29 +90,22 @@
     NSString *JSONString = nil;
     if (![self isJSONString:object]) {
 
-        if (NSClassFromString(@"NSJSONSerialization")) {
+		if ([object isKindOfClass:[NSArray class]] || [object isKindOfClass:[NSDictionary class]]) {
 
-            if ([object isKindOfClass:[NSArray class]] || [object isKindOfClass:[NSDictionary class]]) {
+			NSError *serializationError = nil;
+			NSData *JSONSerializedObject = [NSJSONSerialization dataWithJSONObject:object
+																		   options:(NSJSONWritingOptions)0
+																			 error:&serializationError];
+			JSONString = [[NSString alloc] initWithData:JSONSerializedObject encoding:NSUTF8StringEncoding];
+		}
+		else if ([object isKindOfClass:[NSNumber class]]) {
 
-                NSError *serializationError = nil;
-                NSData *JSONSerializedObject = [NSJSONSerialization dataWithJSONObject:object
-                                                                               options:(NSJSONWritingOptions)0
-                                                                                 error:&serializationError];
-                JSONString = [[NSString alloc] initWithData:JSONSerializedObject encoding:NSUTF8StringEncoding];
-            }
-            else if ([object isKindOfClass:[NSNumber class]]) {
+			JSONString = [(NSNumber *)object stringValue];
+		}
+		else {
 
-                JSONString = [(NSNumber *)object stringValue];
-            }
-            else {
-
-                JSONString = [NSString stringWithFormat:@"\"%@\"", object];
-            }
-        }
-        else {
-
-            JSONString = [object JSONString];
-        }
+			JSONString = [NSString stringWithFormat:@"\"%@\"", object];
+		}
     }
     else {
 
